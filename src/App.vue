@@ -1,7 +1,7 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import moment from 'moment';
-
+import Posts from './components/Posts.vue'
 const formData = ref({
   title                : '',
   content              : ''
@@ -39,8 +39,6 @@ const posts = ref([
 ]);
 //initial some posts end
 
-// assign empty array to store comment for each post.
-const newComment      = ref([]);
 
 // increase like for individual post
 function increaseLikeCount(index){
@@ -63,28 +61,47 @@ function createPost(){
   formData.value.content  = ''; //empty form content
 }
 
+//post create confirmation
+watch(
+  ()=>posts.value.length,
+  (newValue,oldValue)=>{
+    if(newValue>oldValue){
+      alert('A new post has been created.');
+    }
+  },
+  {immediate: true}
+)
+
+// 10 likes confirmation
+
+watch(
+  ()=>{
+    posts.value.forEach(post=>{
+      if(post.likes == 10 && !post.likeConfirmation){
+        post.likeConfirmation = true;
+        alert("A post has reached 10 likes.");
+      }
+    })
+  }
+)
+
+// comments congratualtions
+watch(
+  ()=>{
+    posts.value.forEach(post=>{
+      if(post.comments.length == 3 && !post.CommentsConfirmation){
+        post.CommentsConfirmation = true;
+        alert("A post has reached 3 comments.");
+      }
+    })
+  }
+)
+
 // delete post
 function deletePost(index){
   posts.value.splice(index,1);
 }
 
-// create comment
-function createComment(index){
-  // if comment exists, then push into comment array
-  if(newComment.value[index]){
-      posts.value[index].comments.push({
-      id            : posts.value[index].comments.length?posts.value[index].comments[(posts.value[index].comments.length)-1].id + 1 : 1, // id incremented by 1 with post's last comment id, if there is no comment then id is initial 1
-      text          : newComment.value[index],
-      date          : moment().format('YYYY-MM-DD HH:mm:ss')
-    })
-  }
-  newComment.value[index] = '';  //empty comment
-}
-
-// delete comment
-function deleteComment(post,commentIndex){
-  post.comments.splice(commentIndex,1)
-}
 
 </script>
 
@@ -144,55 +161,11 @@ function deleteComment(post,commentIndex){
   </div>
   <!-- create post end-->
 
-  <!-- post list start -->
-  <div class="posts mt-4">
-    <div class="container">
-      <div class="nav nav-tabs mb-4">
-        <h3>Posts</h3>
-      </div>
-
-      <div class="row">
-        <!-- post v-for loop here -->
-        <div class="col-md-4" v-for="(post,index) in posts" :key="post.id">
-          <div class="card mb-4">
-            <div class="card-body">
-              <h5 class="card-title">{{ post.title }}</h5>
-              <h6 class="card-subtitle mb-2 text-body-secondary">{{ moment(post.date).fromNow() }}</h6>
-              <p class="card-text">{{ post.content }}</p>
-              <p class="card-text">
-                <small v-if="post.likes > 1">{{ post.likes }} Likes, </small>
-                <small v-else-if="post.likes == 1">{{ post.likes }} Like, </small>
-                <small v-else>No Likes, </small>
-                <small @click="post.commentVisibility=!post.commentVisibility" style="cursor: pointer;">{{ 
-                  post.comments.length==1 ? post.comments.length + ' Comment':
-                  post.comments.length>1 ? post.comments.length + ' Comments': 'No Comments'
-                }}</small>
-              </p>
-
-              <div class="comments mb-3">
-                <div class="comments-input d-flex mb-3">
-                  <input v-model="newComment[index]" @keydown.enter="createComment(index)" type="text" class="form-control form-control-sm me-2" placeholder="Write Comment">
-                  <button @click="createComment(index)" class="btn btn-sm btn-success"><i class="bi bi-send"></i></button>
-                </div>
-                <!-- comments section start -->
-                <!-- comment v-for loop here -->
-                <div v-if="post.commentVisibility" class="comment mb-3 ms-3" v-for="(comment,commentIndex) in posts[index].comments">
-                  <h6 class="card-title small">John Doe <span @click="deleteComment(posts[index],commentIndex)" class="text-danger float-end cursor-pointer">X</span></h6>
-                  <p class="card-subtitle mb-1 text-body-secondary small">{{ moment(comment.date).fromNow() }}</p>
-                  <p class="card-text small">{{ comment.text }}</p>
-                </div>
-                <hr class="my-2 very-low-opacity">
-              </div>
-              <!-- comments section end -->
-              <button class="btn btn-sm btn-primary" @click="increaseLikeCount(index)">Like</button> 
-              <button class="btn btn-sm btn-danger float-end" @click="deletePost(index)"><i class="bi bi-trash"></i></button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- post list end -->
+  <Posts :posts="posts" 
+    @increaseLikeCount = "increaseLikeCount"
+    @deletePost        = "deletePost"
+   >
+  </Posts>
 </template>
 
 <style scoped>
